@@ -57,11 +57,11 @@ This is enough to validate the package shape and demo flow, but it is not yet th
 - image asset inlining is not implemented
 - PDF export is scaffolded but not implemented
 - SVG raster mode is scaffolded but not implemented
-- browser capability detection for `html-in-canvas` is not implemented
+- WICG `html-in-canvas` is experimental and depends on nonstandard browser APIs (`layoutSubtree`, `requestPaint()`, `drawElementImage()`)
 
 ## Suggested Next Tasks
 
 1. Add a proper asset inlining pipeline for fonts and images.
 2. Add visual fixtures under `tests/`.
 3. Implement `renderToPdf`.
-4. Add `auto` strategy selection with capability detection.
+4. Expand `html-in-canvas` coverage and strategy diagnostics.

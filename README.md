@@ -80,17 +80,17 @@ function App() {
 
 ## Strategy Direction
 
-The initial implementation uses a `foreignObject`-based strategy as the baseline. The intended evolution is:
+ReactSnap now ships with a stable `foreignObject` baseline and an experimental WICG `html-in-canvas` strategy. The current strategy model is:
 
 1. `auto`
-2. `html-in-canvas` when browsers support it well enough
-3. `foreign-object` fallback
+2. `html-in-canvas` when the browser exposes the WICG canvas APIs
+3. `foreign-object` as the deterministic baseline and fallback
 
 ## Next Build Steps
 
 1. Add asset inlining for fonts and images.
 2. Implement a real PDF backend.
-3. Add browser capability detection and strategy fallback.
+3. Expand browser capability detection and strategy diagnostics.
 4. Add test fixtures and rendering benchmarks.
 
 ## Docs

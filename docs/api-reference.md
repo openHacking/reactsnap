@@ -124,6 +124,27 @@ ctx.lineWidth = 12;
 ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
 ```
 
+### `supportsHtmlInCanvas()`
+
+Check whether the current browser environment can use the experimental WICG `html-in-canvas` strategy.
+
+```ts
+import { renderToCanvas, supportsHtmlInCanvas } from "@reactsnap/core";
+
+const target = document.getElementById("poster");
+
+if (!target) {
+  throw new Error("Missing #poster element");
+}
+
+const canvas = await renderToCanvas(target, {
+  strategy: supportsHtmlInCanvas() ? "html-in-canvas" : "foreign-object",
+  debug: true
+});
+```
+
+`supportsHtmlInCanvas()` checks for the WICG canvas APIs ReactSnap uses today: `layoutSubtree`, `requestPaint()`, and `CanvasRenderingContext2D.drawElementImage()`.
+
 ### `nodeToCanvas(input, options?)`
 
 Low-level canvas rendering primitive used by the format helpers.
@@ -247,9 +268,15 @@ Option notes:
 - `scale`: Multiply the rasterized output size. `2` is a good default for previews and share cards.
 - `background`: Fill the canvas before drawing the exported node.
 - `pixelRatio`: Reserved for future renderer tuning. The current baseline renderer primarily relies on `scale`.
-- `strategy`: Currently the `foreign-object` path is the implemented baseline.
+- `strategy`: `auto` prefers WICG `html-in-canvas` when supported and falls back to `foreign-object`. `html-in-canvas` is explicit and experimental, and throws when the browser does not expose the required WICG APIs. `foreign-object` always uses the stable baseline.
 - `waitUntil`: Wait for document readiness before capture. You can also pass a number in milliseconds.
 - `fontEmbed`, `imageEmbed`, `allowTaint`, `timeout`, `debug`: Reserved for the next rendering milestones and API stability.
+
+Recommended strategy usage:
+
+- `auto`: sensible production default
+- `html-in-canvas`: explicit validation or experimentation path
+- `foreign-object`: deterministic baseline for compatibility-sensitive exports
 
 Useful presets:
 
@@ -265,7 +292,8 @@ const ogImageOptions = {
 const thumbnailOptions = {
   width: 320,
   height: 180,
-  scale: 1
+  scale: 1,
+  strategy: "foreign-object"
 } satisfies RenderOptions;
 ```
 

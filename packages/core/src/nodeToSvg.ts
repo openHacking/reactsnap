@@ -1,48 +1,6 @@
 import type { RenderOptions } from "./types";
+import { cloneNodeForSnapshot } from "./snapshotNode";
 import { ensureBrowserApi, escapeSvgText, resolveDimensions, waitForReady } from "./utils";
-
-function copyComputedStyles(source: Element, target: Element): void {
-  const computed = getComputedStyle(source);
-  const cssText = Array.from(computed)
-    .map((property) => `${property}:${computed.getPropertyValue(property)};`)
-    .join("");
-
-  target.setAttribute("style", cssText);
-
-  if (source instanceof HTMLInputElement) {
-    target.setAttribute("value", source.value);
-  }
-
-  if (source instanceof HTMLTextAreaElement) {
-    target.textContent = source.value;
-  }
-
-  if (source instanceof HTMLCanvasElement && target instanceof HTMLCanvasElement) {
-    const dataUrl = source.toDataURL();
-    const replacement = document.createElement("img");
-    replacement.setAttribute("src", dataUrl);
-    replacement.setAttribute("style", cssText);
-    target.replaceWith(replacement);
-    return;
-  }
-
-  const sourceChildren = Array.from(source.children);
-  const targetChildren = Array.from(target.children);
-
-  for (let index = 0; index < sourceChildren.length; index += 1) {
-    const sourceChild = sourceChildren[index];
-    const targetChild = targetChildren[index];
-    if (sourceChild && targetChild) {
-      copyComputedStyles(sourceChild, targetChild);
-    }
-  }
-}
-
-function cloneNodeForSvg(node: HTMLElement): HTMLElement {
-  const cloned = node.cloneNode(true) as HTMLElement;
-  copyComputedStyles(node, cloned);
-  return cloned;
-}
 
 export async function nodeToSvgString(
   node: HTMLElement,
@@ -52,7 +10,7 @@ export async function nodeToSvgString(
   await waitForReady(node.ownerDocument, options.waitUntil);
 
   const { width, height } = resolveDimensions(node, options);
-  const cloned = cloneNodeForSvg(node);
+  const cloned = cloneNodeForSnapshot(node);
   const serializedNode = new XMLSerializer().serializeToString(cloned);
   const background = options.background
     ? `<rect width="100%" height="100%" fill="${escapeSvgText(options.background)}" />`

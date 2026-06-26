@@ -12,10 +12,10 @@ The project is intentionally narrow so the rendering engine can stay dependable.
 
 ```txt
 DOM Node
+  -> choose raster strategy
   -> clone subtree
-  -> inline computed styles
-  -> serialize SVG foreignObject
-  -> decode in Image
+  -> html-in-canvas: mount canvas subtree, request paint, drawElementImage
+  -> or foreign-object: serialize SVG and decode in Image
   -> draw to Canvas
   -> export Blob
 ```
@@ -34,8 +34,8 @@ React Component
 ## Strategy Model
 
 - `foreign-object`: current baseline and fallback
-- `html-in-canvas`: preferred future browser-native path
-- `auto`: capability-based router
+- `html-in-canvas`: experimental WICG path using `layoutSubtree`, `requestPaint()`, and `drawElementImage()`
+- `auto`: capability-based router that prefers `html-in-canvas`
 
 ## Package Responsibilities
 

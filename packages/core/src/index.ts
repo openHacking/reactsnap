@@ -3,3 +3,4 @@ export { downloadBlob } from "./download";
 export { nodeToCanvas } from "./nodeToCanvas";
 export { nodeToSvgDataUrl, nodeToSvgString } from "./nodeToSvg";
 export { renderToCanvas, renderToJpeg, renderToPng, renderToWebp } from "./renderers";
+export { supportsHtmlInCanvas } from "./strategies/resolveStrategy";

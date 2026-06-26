@@ -7,12 +7,17 @@ import {
   renderToCanvas,
   renderToJpeg,
   renderToPng,
-  renderToWebp
+  renderToWebp,
+  supportsHtmlInCanvas
 } from "../packages/core/src/index";
 
 describe("@reactsnap/core API", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(HTMLCanvasElement.prototype, "layoutSubtree");
+    Reflect.deleteProperty(HTMLCanvasElement.prototype, "requestPaint");
   });
 
   it("serializes a DOM node to an SVG string with copied values and background", async () => {
@@ -116,6 +121,220 @@ describe("@reactsnap/core API", () => {
     await expect(renderToWebp(node, { width: 75, height: 30 })).resolves.toMatchObject({
       type: "image/webp"
     });
+  });
+
+  it("reports html-in-canvas capability based on WICG canvas APIs", () => {
+    Object.defineProperty(HTMLCanvasElement.prototype, "layoutSubtree", {
+      value: false,
+      writable: true,
+      configurable: true
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, "requestPaint", {
+      value: vi.fn(),
+      configurable: true
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      drawElementImage: vi.fn()
+    } as never);
+
+    expect(supportsHtmlInCanvas()).toBe(true);
+
+    Reflect.deleteProperty(HTMLCanvasElement.prototype, "layoutSubtree");
+    Reflect.deleteProperty(HTMLCanvasElement.prototype, "requestPaint");
+    vi.restoreAllMocks();
+    expect(supportsHtmlInCanvas()).toBe(false);
+  });
+
+  it("uses html-in-canvas when auto is selected and capability is available", async () => {
+    const node = document.createElement("div");
+    document.body.appendChild(node);
+
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({ width: 60, height: 24 })
+    });
+
+    const context = {
+      fillStyle: "",
+      fillRect: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn(),
+      drawElementImage: vi.fn()
+    };
+
+    Object.defineProperty(HTMLCanvasElement.prototype, "layoutSubtree", {
+      value: false,
+      writable: true,
+      configurable: true
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, "requestPaint", {
+      value: vi.fn(function (this: HTMLCanvasElement) {
+        this.dispatchEvent(new Event("paint"));
+      }),
+      configurable: true
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
+
+    const canvas = await nodeToCanvas(node, { width: 60, height: 24, strategy: "auto" });
+
+    expect(canvas).toBeInstanceOf(HTMLCanvasElement);
+    expect((canvas as HTMLCanvasElement & { layoutSubtree?: boolean }).layoutSubtree).toBe(true);
+    expect(context.drawElementImage).toHaveBeenCalledWith(expect.any(HTMLElement), 0, 0, 60, 24);
+  });
+
+  it("falls back from auto to foreign-object with a debug warning", async () => {
+    const node = document.createElement("div");
+    document.body.appendChild(node);
+
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({ width: 75, height: 30 })
+    });
+
+    const context = {
+      fillStyle: "",
+      fillRect: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn()
+    };
+
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    class MockImage {
+      decoding = "";
+      src = "";
+      async decode() {}
+    }
+
+    vi.stubGlobal("Image", MockImage);
+
+    await nodeToCanvas(node, {
+      width: 75,
+      height: 30,
+      strategy: "auto",
+      debug: true
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('strategy "auto" resolved to "foreign-object"')
+    );
+    expect(context.drawImage).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back from auto when html-in-canvas rendering fails at runtime", async () => {
+    const node = document.createElement("div");
+    document.body.appendChild(node);
+
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({ width: 75, height: 30 })
+    });
+
+    const context = {
+      fillStyle: "",
+      fillRect: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn(),
+      drawElementImage: vi.fn(() => {
+        throw new Error("draw failed");
+      })
+    };
+
+    Object.defineProperty(HTMLCanvasElement.prototype, "layoutSubtree", {
+      value: false,
+      writable: true,
+      configurable: true
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, "requestPaint", {
+      value: vi.fn(function (this: HTMLCanvasElement) {
+        this.dispatchEvent(new Event("paint"));
+      }),
+      configurable: true
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    class MockImage {
+      decoding = "";
+      src = "";
+      async decode() {}
+    }
+
+    vi.stubGlobal("Image", MockImage);
+
+    await nodeToCanvas(node, {
+      width: 75,
+      height: 30,
+      strategy: "auto",
+      debug: true
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("html-in-canvas render failed; falling back to foreign-object")
+    );
+    expect(context.drawImage).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws when html-in-canvas is explicitly requested without support", async () => {
+    const node = document.createElement("div");
+    document.body.appendChild(node);
+
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({ width: 75, height: 30 })
+    });
+
+    await expect(
+      nodeToCanvas(node, {
+        width: 75,
+        height: 30,
+        strategy: "html-in-canvas"
+      })
+    ).rejects.toThrow("html-in-canvas is not supported in this browser environment.");
+  });
+
+  it("keeps foreign-object as a deterministic explicit strategy", async () => {
+    const node = document.createElement("div");
+    document.body.appendChild(node);
+
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({ width: 90, height: 40 })
+    });
+
+    const context = {
+      fillStyle: "",
+      fillRect: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn(),
+      drawElementImage: vi.fn()
+    };
+
+    Object.defineProperty(HTMLCanvasElement.prototype, "layoutSubtree", {
+      value: false,
+      writable: true,
+      configurable: true
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, "requestPaint", {
+      value: vi.fn(function (this: HTMLCanvasElement) {
+        this.dispatchEvent(new Event("paint"));
+      }),
+      configurable: true
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
+
+    class MockImage {
+      decoding = "";
+      src = "";
+      async decode() {}
+    }
+
+    vi.stubGlobal("Image", MockImage);
+
+    await nodeToCanvas(node, {
+      width: 90,
+      height: 40,
+      strategy: "foreign-object"
+    });
+
+    expect(context.drawElementImage).not.toHaveBeenCalled();
+    expect(context.drawImage).toHaveBeenCalledTimes(1);
   });
 
   it("downloads a blob through an object URL", async () => {

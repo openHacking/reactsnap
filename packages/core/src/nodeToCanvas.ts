@@ -1,6 +1,8 @@
 import type { RenderOptions } from "./types";
-import { nodeToSvgDataUrl } from "./nodeToSvg";
-import { ensureBrowserApi, resolveDimensions, waitForReady } from "./utils";
+import { renderWithForeignObject } from "./strategies/foreignObject";
+import { renderWithHtmlInCanvas } from "./strategies/htmlInCanvas";
+import { debugStrategySelection, resolveRasterStrategy, supportsHtmlInCanvas } from "./strategies/resolveStrategy";
+import { ensureBrowserApi, waitForReady } from "./utils";
 
 export async function nodeToCanvas(
   node: HTMLElement,
@@ -10,29 +12,41 @@ export async function nodeToCanvas(
   ensureBrowserApi("Image", globalThis.Image);
   await waitForReady(node.ownerDocument, options.waitUntil);
 
-  const { width, height, scale } = resolveDimensions(node, options);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(width * scale);
-  canvas.height = Math.round(height * scale);
-  canvas.style.width = `${width}px`;
-  canvas.style.height = `${height}px`;
+  const requestedStrategy = options.strategy ?? "auto";
+  const resolvedStrategy = resolveRasterStrategy(options);
 
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Unable to acquire a 2D canvas context.");
+  if (resolvedStrategy === "html-in-canvas") {
+    if (requestedStrategy === "html-in-canvas") {
+      return await renderWithHtmlInCanvas(node, options);
+    }
+
+    debugStrategySelection("auto", "html-in-canvas", "browser capability available", options.debug);
+
+    try {
+      return await renderWithHtmlInCanvas(node, options);
+    } catch (error) {
+      debugStrategySelection(
+        "auto",
+        "foreign-object",
+        `html-in-canvas render failed; falling back to foreign-object (${String(error)})`,
+        options.debug
+      );
+      return await renderWithForeignObject(node, options);
+    }
   }
 
-  if (options.background) {
-    context.fillStyle = options.background;
-    context.fillRect(0, 0, canvas.width, canvas.height);
+  if (requestedStrategy === "html-in-canvas" && !supportsHtmlInCanvas()) {
+    throw new Error("html-in-canvas is not supported in this browser environment.");
   }
 
-  const image = new Image();
-  image.decoding = "async";
-  image.src = await nodeToSvgDataUrl(node, options);
-  await image.decode();
+  if (requestedStrategy === "auto") {
+    debugStrategySelection(
+      "auto",
+      "foreign-object",
+      "html-in-canvas capability unavailable; falling back to foreign-object",
+      options.debug
+    );
+  }
 
-  context.scale(scale, scale);
-  context.drawImage(image, 0, 0, width, height);
-  return canvas;
+  return await renderWithForeignObject(node, options);
 }

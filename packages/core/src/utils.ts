@@ -15,6 +15,34 @@ export function resolveDimensions(node: HTMLElement, options: RenderOptions) {
   return { width, height, scale };
 }
 
+export function createCanvas(width: number, height: number, scale: number) {
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Unable to acquire a 2D canvas context.");
+  }
+
+  return { canvas, context };
+}
+
+export function drawBackground(
+  context: CanvasRenderingContext2D,
+  canvas: HTMLCanvasElement,
+  background?: string
+): void {
+  if (!background) {
+    return;
+  }
+
+  context.fillStyle = background;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+}
+
 export async function waitForReady(
   target: Document,
   waitUntil: RenderOptions["waitUntil"] = "fonts"
