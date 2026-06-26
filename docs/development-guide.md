@@ -13,6 +13,8 @@ pnpm dev:example
 ```
 
 This starts the Vite example app and resolves local workspace packages directly from source.
+The example now acts as a development workbench: the left side shows a real source node
+(`React component` or `HTML block`) and the right side shows the exported PNG preview.
 
 ## Common Commands
 
@@ -29,9 +31,13 @@ pnpm check
 
 - `packages/core` contains the browser rendering baseline.
 - `packages/react` wraps the core package with React ergonomics.
-- `examples/vite-react` is the reference local development surface.
+- `examples/vite-react` is the reference local development surface and visual verification page.
 - `packages/pdf`, `packages/svg`, and `packages/cli` are scaffolded for the next milestones.
 - `packages/pdf`, `packages/svg`, and `packages/cli` are scaffolded placeholders and are not part of the default verification loop yet.
+
+## API Docs
+
+- [API Reference](api-reference.md)
 
 ## Current Rendering Baseline
 

@@ -2,6 +2,7 @@
 
 Core project docs live here:
 
-- [Development Guide](/Volumes/github/private/reactsnap/docs/development-guide.md)
-- [Roadmap](/Volumes/github/private/reactsnap/docs/roadmap.md)
-- [Architecture](/Volumes/github/private/reactsnap/docs/architecture.md)
+- [Development Guide](development-guide.md)
+- [API Reference](api-reference.md)
+- [Roadmap](roadmap.md)
+- [Architecture](architecture.md)

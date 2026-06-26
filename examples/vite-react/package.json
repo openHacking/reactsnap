@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit --pretty false -p tsconfig.json"
   },
   "dependencies": {
+    "@reactsnap/core": "workspace:*",
     "@reactsnap/react": "workspace:*",
     "react": "19.1.0",
     "react-dom": "19.1.0"

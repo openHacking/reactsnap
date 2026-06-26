@@ -95,6 +95,7 @@ The initial implementation uses a `foreignObject`-based strategy as the baseline
 
 ## Docs
 
-- [Development Guide](/Volumes/github/private/reactsnap/docs/development-guide.md)
-- [Roadmap](/Volumes/github/private/reactsnap/docs/roadmap.md)
-- [Architecture](/Volumes/github/private/reactsnap/docs/architecture.md)
+- [Development Guide](docs/development-guide.md)
+- [API Reference](docs/api-reference.md)
+- [Roadmap](docs/roadmap.md)
+- [Architecture](docs/architecture.md)
