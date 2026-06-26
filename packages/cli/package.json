@@ -1,0 +1,13 @@
+{
+  "name": "@reactsnap/cli",
+  "version": "0.1.0",
+  "description": "CLI for ReactSnap.",
+  "type": "module",
+  "bin": {
+    "reactsnap": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@reactsnap/core": ["packages/core/src/index.ts"],
+      "@reactsnap/react": ["packages/react/src/index.ts"],
+      "@reactsnap/pdf": ["packages/pdf/src/index.ts"],
+      "@reactsnap/svg": ["packages/svg/src/index.ts"]
+    }
+  }
+}
