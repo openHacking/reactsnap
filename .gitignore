@@ -1,6 +1,8 @@
 node_modules
+.pnpm-store/
 dist
 .DS_Store
 coverage
 playwright-report
+*.tsbuildinfo
 pnpm-lock.yaml

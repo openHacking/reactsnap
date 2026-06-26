@@ -93,3 +93,8 @@ The initial implementation uses a `foreignObject`-based strategy as the baseline
 3. Add browser capability detection and strategy fallback.
 4. Add test fixtures and rendering benchmarks.
 
+## Docs
+
+- [Development Guide](/Volumes/github/private/reactsnap/docs/development-guide.md)
+- [Roadmap](/Volumes/github/private/reactsnap/docs/roadmap.md)
+- [Architecture](/Volumes/github/private/reactsnap/docs/architecture.md)

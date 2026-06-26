@@ -48,10 +48,6 @@ export async function waitForReady(
   await delay(16);
 }
 
-export function cloneNodeForExport(node: HTMLElement): HTMLElement {
-  return node.cloneNode(true) as HTMLElement;
-}
-
 export function escapeSvgText(input: string): string {
   return input
     .replaceAll("&", "&amp;")

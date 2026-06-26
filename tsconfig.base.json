@@ -11,12 +11,6 @@
     "sourceMap": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@reactsnap/core": ["packages/core/src/index.ts"],
-      "@reactsnap/react": ["packages/react/src/index.ts"],
-      "@reactsnap/pdf": ["packages/pdf/src/index.ts"],
-      "@reactsnap/svg": ["packages/svg/src/index.ts"]
-    }
+    "jsx": "react-jsx"
   }
 }

@@ -1,8 +1,17 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["node"],
+    "paths": {
+      "@reactsnap/core": ["../../packages/core/src/index.ts"],
+      "@reactsnap/react": ["../../packages/react/src/index.ts"]
+    }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "src",
+    "vite.config.ts",
+    "../../packages/core/src/**/*.ts",
+    "../../packages/react/src/**/*.ts"
+  ]
 }
