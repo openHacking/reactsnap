@@ -17,6 +17,7 @@
   "scripts": {
     "build": "pnpm --filter @reactsnap/core build && pnpm --filter @reactsnap/react build && pnpm --filter vite-react build",
     "check": "pnpm --filter @reactsnap/core typecheck && pnpm --filter @reactsnap/react typecheck && pnpm --filter vite-react typecheck",
+    "release:npm": "node ./scripts/release.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "dev:example": "pnpm --filter vite-react dev",
