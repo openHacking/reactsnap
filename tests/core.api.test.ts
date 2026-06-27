@@ -4,6 +4,7 @@ import {
   nodeToCanvas,
   nodeToSvgDataUrl,
   nodeToSvgString,
+  type ResolvedRenderStrategy,
   renderToCanvas,
   renderToJpeg,
   renderToPng,
@@ -174,11 +175,23 @@ describe("@reactsnap/core API", () => {
     });
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
 
-    const canvas = await nodeToCanvas(node, { width: 60, height: 24, strategy: "auto" });
+    const resolved: ResolvedRenderStrategy[] = [];
+    const canvas = await nodeToCanvas(node, {
+      width: 60,
+      height: 24,
+      strategy: "auto",
+      onStrategyResolved: (strategy) => resolved.push(strategy)
+    });
 
     expect(canvas).toBeInstanceOf(HTMLCanvasElement);
     expect((canvas as HTMLCanvasElement & { layoutSubtree?: boolean }).layoutSubtree).toBe(true);
     expect(context.drawElementImage).toHaveBeenCalledWith(expect.any(HTMLElement), 0, 0, 60, 24);
+    expect(resolved.at(-1)).toEqual({
+      requested: "auto",
+      resolved: "html-in-canvas",
+      fallback: false,
+      reason: "browser capability available"
+    });
   });
 
   it("falls back from auto to foreign-object with a debug warning", async () => {
@@ -207,13 +220,21 @@ describe("@reactsnap/core API", () => {
 
     vi.stubGlobal("Image", MockImage);
 
+    const resolved: ResolvedRenderStrategy[] = [];
     await nodeToCanvas(node, {
       width: 75,
       height: 30,
       strategy: "auto",
-      debug: true
+      debug: true,
+      onStrategyResolved: (strategy) => resolved.push(strategy)
     });
 
+    expect(resolved.at(-1)).toEqual({
+      requested: "auto",
+      resolved: "foreign-object",
+      fallback: true,
+      reason: "html-in-canvas capability unavailable; falling back to foreign-object"
+    });
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('strategy "auto" resolved to "foreign-object"')
     );
@@ -260,13 +281,21 @@ describe("@reactsnap/core API", () => {
 
     vi.stubGlobal("Image", MockImage);
 
+    const resolved: ResolvedRenderStrategy[] = [];
     await nodeToCanvas(node, {
       width: 75,
       height: 30,
       strategy: "auto",
-      debug: true
+      debug: true,
+      onStrategyResolved: (strategy) => resolved.push(strategy)
     });
 
+    expect(resolved.at(-1)?.requested).toBe("auto");
+    expect(resolved.at(-1)?.resolved).toBe("foreign-object");
+    expect(resolved.at(-1)?.fallback).toBe(true);
+    expect(resolved.at(-1)?.reason).toContain(
+      "html-in-canvas render failed; falling back to foreign-object"
+    );
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining("html-in-canvas render failed; falling back to foreign-object")
     );
@@ -327,12 +356,20 @@ describe("@reactsnap/core API", () => {
 
     vi.stubGlobal("Image", MockImage);
 
+    const resolved: ResolvedRenderStrategy[] = [];
     await nodeToCanvas(node, {
       width: 90,
       height: 40,
-      strategy: "foreign-object"
+      strategy: "foreign-object",
+      onStrategyResolved: (strategy) => resolved.push(strategy)
     });
 
+    expect(resolved.at(-1)).toEqual({
+      requested: "foreign-object",
+      resolved: "foreign-object",
+      fallback: false,
+      reason: "explicit foreign-object strategy requested"
+    });
     expect(context.drawElementImage).not.toHaveBeenCalled();
     expect(context.drawImage).toHaveBeenCalledTimes(1);
   });

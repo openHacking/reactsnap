@@ -145,6 +145,8 @@ const canvas = await renderToCanvas(target, {
 
 `supportsHtmlInCanvas()` checks for the WICG canvas APIs ReactSnap uses today: `layoutSubtree`, `requestPaint()`, and `CanvasRenderingContext2D.drawElementImage()`.
 
+For manual testing in Chrome, enable `chrome://flags/#canvas-draw-element` and relaunch the browser before expecting `supportsHtmlInCanvas()` to return `true`.
+
 ### `nodeToCanvas(input, options?)`
 
 Low-level canvas rendering primitive used by the format helpers.

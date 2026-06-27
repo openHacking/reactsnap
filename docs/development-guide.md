@@ -16,6 +16,20 @@ This starts the Vite example app and resolves local workspace packages directly 
 The example now acts as a development workbench: the left side shows a real source node
 (`React component` or `HTML block`) and the right side shows the exported PNG preview.
 
+## Testing The WICG Path
+
+The example app can only exercise the experimental `html-in-canvas` path when the browser exposes the required WICG APIs.
+
+For Chrome-based manual testing:
+
+1. Open `chrome://flags/#canvas-draw-element`
+2. Enable the flag
+3. Relaunch the browser
+4. Run `pnpm dev:example`
+5. In the example UI, choose `WICG HTML in Canvas`
+
+If the flag is still disabled, the example will show WICG support as unavailable and `auto` will fall back to `foreign-object`.
+
 ## Common Commands
 
 ```bash
@@ -58,6 +72,7 @@ This is enough to validate the package shape and demo flow, but it is not yet th
 - PDF export is scaffolded but not implemented
 - SVG raster mode is scaffolded but not implemented
 - WICG `html-in-canvas` is experimental and depends on nonstandard browser APIs (`layoutSubtree`, `requestPaint()`, `drawElementImage()`)
+- Chrome-based manual verification of `html-in-canvas` currently requires enabling `chrome://flags/#canvas-draw-element`
 
 ## Suggested Next Tasks
 

@@ -86,6 +86,17 @@ ReactSnap now ships with a stable `foreignObject` baseline and an experimental W
 2. `html-in-canvas` when the browser exposes the WICG canvas APIs
 3. `foreign-object` as the deterministic baseline and fallback
 
+## Testing `html-in-canvas`
+
+To manually test the experimental WICG `html-in-canvas` path in Chrome, enable the `canvas-draw-element` flag first:
+
+1. Open `chrome://flags/#canvas-draw-element`
+2. Enable the flag
+3. Relaunch Chrome
+4. Start the example app and switch the strategy to `WICG HTML in Canvas`
+
+Without that flag, Chrome will usually report WICG support as unavailable and ReactSnap will fall back to `foreign-object`.
+
 ## Next Build Steps
 
 1. Add asset inlining for fonts and images.

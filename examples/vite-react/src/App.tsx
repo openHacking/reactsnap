@@ -1,15 +1,27 @@
-import { renderToPng } from "@reactsnap/core";
+import {
+  renderToPng,
+  supportsHtmlInCanvas,
+  type RenderStrategy,
+  type ResolvedRenderStrategy
+} from "@reactsnap/core";
 import { useReactSnap } from "@reactsnap/react";
 import { useEffect, useRef, useState } from "react";
 
 type SourceMode = "react" | "html";
+type StrategyOption = Exclude<RenderStrategy, undefined>;
 
 const sharedExportOptions = {
   scale: 2,
   background: "#f7f3ea"
 } as const;
 
-function InvoiceCard(props: { variant: SourceMode }) {
+const strategyLabels: Record<StrategyOption, string> = {
+  auto: "Auto",
+  "html-in-canvas": "WICG HTML in Canvas",
+  "foreign-object": "foreignObject"
+};
+
+function InvoiceCard(props: { variant: SourceMode; strategy: StrategyOption }) {
   const isHtml = props.variant === "html";
 
   return (
@@ -27,7 +39,7 @@ function InvoiceCard(props: { variant: SourceMode }) {
         </div>
         <div>
           <span className="snapshot-card__label">Renderer</span>
-          <strong>foreignObject</strong>
+          <strong>{strategyLabels[props.strategy]}</strong>
         </div>
       </div>
     </article>
@@ -36,22 +48,39 @@ function InvoiceCard(props: { variant: SourceMode }) {
 
 export function App() {
   const [sourceMode, setSourceMode] = useState<SourceMode>("react");
+  const [strategy, setStrategy] = useState<StrategyOption>("auto");
   const [status, setStatus] = useState("Rendering initial preview...");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewSize, setPreviewSize] = useState<string>("--");
+  const [resolvedStrategy, setResolvedStrategy] = useState<ResolvedRenderStrategy | null>(null);
   const htmlRef = useRef<HTMLElement | null>(null);
   const latestPreviewUrlRef = useRef<string | null>(null);
   const { ref: reactRef } = useReactSnap<HTMLDivElement>(sharedExportOptions);
+  const htmlInCanvasSupported = supportsHtmlInCanvas();
 
   useEffect(() => {
     let active = true;
 
     const generatePreview = async () => {
-      setStatus(`Rendering ${sourceMode.toUpperCase()} preview...`);
+      setStatus(
+        `Rendering ${sourceMode.toUpperCase()} preview with ${strategyLabels[strategy]}...`
+      );
 
       try {
         const targetNode = sourceMode === "react" ? reactRef.current : htmlRef.current;
-        const blob = targetNode ? await renderToPng(targetNode, sharedExportOptions) : null;
+        const blob = targetNode
+          ? await renderToPng(targetNode, {
+              ...sharedExportOptions,
+              strategy,
+              debug: true,
+              onStrategyResolved: (nextStrategy) => {
+                if (!active) {
+                  return;
+                }
+                setResolvedStrategy(nextStrategy);
+              }
+            })
+          : null;
 
         if (!blob) {
           throw new Error(`${sourceMode.toUpperCase()} preview target is not attached.`);
@@ -76,6 +105,7 @@ export function App() {
         if (!active) {
           return;
         }
+        setResolvedStrategy(null);
         setStatus(error instanceof Error ? error.message : "Preview export failed.");
       }
     };
@@ -85,7 +115,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [reactRef, sourceMode]);
+  }, [reactRef, sourceMode, strategy]);
 
   useEffect(() => {
     return () => {
@@ -109,21 +139,58 @@ export function App() {
       </section>
 
       <section className="toolbar">
-        <div className="toolbar__group" role="tablist" aria-label="Source mode">
-          <button
-            type="button"
-            className={`chip ${sourceMode === "react" ? "chip--active" : ""}`}
-            onClick={() => setSourceMode("react")}
-          >
-            React component
-          </button>
-          <button
-            type="button"
-            className={`chip ${sourceMode === "html" ? "chip--active" : ""}`}
-            onClick={() => setSourceMode("html")}
-          >
-            HTML block
-          </button>
+        <div className="toolbar__controls">
+          <div className="toolbar__stack">
+            <span className="toolbar__label">Source</span>
+            <div className="toolbar__group" role="tablist" aria-label="Source mode">
+              <button
+                type="button"
+                className={`chip ${sourceMode === "react" ? "chip--active" : ""}`}
+                onClick={() => setSourceMode("react")}
+              >
+                React component
+              </button>
+              <button
+                type="button"
+                className={`chip ${sourceMode === "html" ? "chip--active" : ""}`}
+                onClick={() => setSourceMode("html")}
+              >
+                HTML block
+              </button>
+            </div>
+          </div>
+          <div className="toolbar__stack">
+            <span className="toolbar__label">Strategy</span>
+            <div className="toolbar__group" role="tablist" aria-label="Render strategy">
+              <button
+                type="button"
+                className={`chip ${strategy === "auto" ? "chip--active" : ""}`}
+                onClick={() => setStrategy("auto")}
+              >
+                Auto
+              </button>
+              <button
+                type="button"
+                className={`chip ${strategy === "html-in-canvas" ? "chip--active" : ""}`}
+                onClick={() => setStrategy("html-in-canvas")}
+                disabled={!htmlInCanvasSupported}
+                title={
+                  htmlInCanvasSupported
+                    ? "Use the WICG html-in-canvas path"
+                    : "WICG html-in-canvas is not available in this browser"
+                }
+              >
+                WICG HTML in Canvas
+              </button>
+              <button
+                type="button"
+                className={`chip ${strategy === "foreign-object" ? "chip--active" : ""}`}
+                onClick={() => setStrategy("foreign-object")}
+              >
+                foreignObject
+              </button>
+            </div>
+          </div>
         </div>
         <div className="toolbar__meta">
           <span>{status}</span>
@@ -141,6 +208,30 @@ export function App() {
             <code>{sourceMode === "react" ? "useReactSnap()" : "renderToPng()"}</code>
           </div>
           <div className="panel__body panel__body--source">
+            <div className="strategy-board">
+              <div className="strategy-board__card">
+                <span className="strategy-board__label">Requested</span>
+                <strong>{strategyLabels[strategy]}</strong>
+              </div>
+              <div className="strategy-board__card">
+                <span className="strategy-board__label">Resolved</span>
+                <strong>
+                  {resolvedStrategy ? strategyLabels[resolvedStrategy.resolved] : "--"}
+                </strong>
+              </div>
+              <div className="strategy-board__card">
+                <span className="strategy-board__label">Fallback</span>
+                <strong>{resolvedStrategy ? (resolvedStrategy.fallback ? "Yes" : "No") : "--"}</strong>
+              </div>
+              <div className="strategy-board__card">
+                <span className="strategy-board__label">WICG Support</span>
+                <strong>{htmlInCanvasSupported ? "Available" : "Unavailable"}</strong>
+              </div>
+            </div>
+            <p className="strategy-board__reason">
+              {resolvedStrategy?.reason ??
+                "Choose a strategy to compare explicit routing with automatic fallback."}
+            </p>
             <div className="source-frame">
               <div className="source-frame__canvas">
                 <div className="snapshot-stage">
@@ -149,7 +240,7 @@ export function App() {
                     aria-hidden={sourceMode !== "react"}
                   >
                     <div ref={reactRef}>
-                      <InvoiceCard variant="react" />
+                      <InvoiceCard variant="react" strategy={strategy} />
                     </div>
                   </div>
                   <div
@@ -157,7 +248,7 @@ export function App() {
                     aria-hidden={sourceMode !== "html"}
                   >
                     <section ref={htmlRef}>
-                      <InvoiceCard variant="html" />
+                      <InvoiceCard variant="html" strategy={strategy} />
                     </section>
                   </div>
                 </div>

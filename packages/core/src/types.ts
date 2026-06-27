@@ -1,5 +1,12 @@
 export type RenderStrategy = "auto" | "html-in-canvas" | "foreign-object";
 
+export type ResolvedRenderStrategy = {
+  requested: RenderStrategy;
+  resolved: Exclude<RenderStrategy, "auto">;
+  fallback: boolean;
+  reason: string;
+};
+
 export type RenderWaitUntil = "load" | "fonts" | "network-idle" | number;
 
 export type RenderOptions = {
@@ -15,6 +22,7 @@ export type RenderOptions = {
   allowTaint?: boolean;
   timeout?: number;
   debug?: boolean;
+  onStrategyResolved?: (strategy: ResolvedRenderStrategy) => void;
 };
 
 export type BinaryOutput = "blob" | "data-url" | "array-buffer";
