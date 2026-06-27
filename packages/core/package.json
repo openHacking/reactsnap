@@ -1,6 +1,6 @@
 {
   "name": "@reactsnap/core",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Core rendering primitives for ReactSnap.",
   "type": "module",
   "main": "./dist/index.js",
