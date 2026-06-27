@@ -18,7 +18,19 @@ type HtmlInCanvasRenderingContext2D = CanvasRenderingContext2D & {
   ) => void;
 };
 
-async function waitForPaint(canvas: HtmlInCanvasCanvas, timeout = 500): Promise<void> {
+async function drawDuringPaint(
+  canvas: HtmlInCanvasCanvas,
+  draw: () => void,
+  timeout = 500
+): Promise<void> {
+  const requestPaint = canvas.requestPaint;
+
+  if (typeof requestPaint !== "function") {
+    await delay(16);
+    draw();
+    return;
+  }
+
   await new Promise<void>((resolve, reject) => {
     const timer = window.setTimeout(() => {
       reject(new Error("html-in-canvas paint event timed out."));
@@ -29,13 +41,18 @@ async function waitForPaint(canvas: HtmlInCanvasCanvas, timeout = 500): Promise<
       resolve();
     };
 
-    if (typeof canvas.requestPaint === "function") {
-      canvas.addEventListener("paint", done, { once: true });
-      canvas.requestPaint();
-      return;
-    }
+    const onPaint = () => {
+      try {
+        draw();
+        done();
+      } catch (error) {
+        window.clearTimeout(timer);
+        reject(error);
+      }
+    };
 
-    void delay(16).then(done);
+    canvas.addEventListener("paint", onPaint, { once: true });
+    requestPaint.call(canvas);
   });
 }
 
@@ -57,7 +74,7 @@ export async function renderWithHtmlInCanvas(
   drawBackground(context, canvas, options.background);
   host.setAttribute(
     "style",
-    "position:fixed;left:-100000px;top:0;opacity:0;pointer-events:none;overflow:hidden;"
+    "position:fixed;left:0;top:0;opacity:0.001;pointer-events:none;overflow:hidden;z-index:-1;"
   );
   htmlCanvas.layoutSubtree = true;
   htmlCanvas.setAttribute("layoutsubtree", "");
@@ -68,9 +85,14 @@ export async function renderWithHtmlInCanvas(
   document.body.appendChild(host);
 
   try {
-    await waitForPaint(htmlCanvas, options.timeout ?? 500);
     htmlContext.scale(scale, scale);
-    htmlContext.drawElementImage(cloned, 0, 0, width, height);
+    await drawDuringPaint(
+      htmlCanvas,
+      () => {
+        htmlContext.drawElementImage(cloned, 0, 0, width, height);
+      },
+      options.timeout ?? 500
+    );
     return canvas;
   } finally {
     host.remove();

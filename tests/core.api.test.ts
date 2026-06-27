@@ -302,6 +302,61 @@ describe("@reactsnap/core API", () => {
     expect(context.drawImage).toHaveBeenCalledTimes(1);
   });
 
+  it("draws html-in-canvas during the paint callback to avoid stale paint records", async () => {
+    const node = document.createElement("div");
+    document.body.appendChild(node);
+
+    Object.defineProperty(node, "getBoundingClientRect", {
+      value: () => ({ width: 75, height: 30 })
+    });
+
+    let painting = false;
+    const context = {
+      fillStyle: "",
+      fillRect: vi.fn(),
+      scale: vi.fn(),
+      drawImage: vi.fn(),
+      drawElementImage: vi.fn(() => {
+        if (!painting) {
+          throw new Error("No cached paint record for element.");
+        }
+      })
+    };
+
+    Object.defineProperty(HTMLCanvasElement.prototype, "layoutSubtree", {
+      value: false,
+      writable: true,
+      configurable: true
+    });
+    Object.defineProperty(HTMLCanvasElement.prototype, "requestPaint", {
+      value: vi.fn(function (this: HTMLCanvasElement) {
+        painting = true;
+        this.dispatchEvent(new Event("paint"));
+        painting = false;
+      }),
+      configurable: true
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as never);
+
+    const resolved: ResolvedRenderStrategy[] = [];
+    const canvas = await nodeToCanvas(node, {
+      width: 75,
+      height: 30,
+      strategy: "html-in-canvas",
+      onStrategyResolved: (strategy) => resolved.push(strategy)
+    });
+
+    expect(canvas).toBeInstanceOf(HTMLCanvasElement);
+    expect(resolved.at(-1)).toEqual({
+      requested: "html-in-canvas",
+      resolved: "html-in-canvas",
+      fallback: false,
+      reason: "explicit html-in-canvas strategy requested"
+    });
+    expect(context.drawElementImage).toHaveBeenCalledTimes(1);
+    expect(context.drawImage).not.toHaveBeenCalled();
+  });
+
   it("throws when html-in-canvas is explicitly requested without support", async () => {
     const node = document.createElement("div");
     document.body.appendChild(node);
